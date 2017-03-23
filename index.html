@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="Test forms for HG">
+  <title>HG test forms</title>
+  <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="bower_components/bootstrap-select/dist/css/bootstrap-select.min.css" />
+  <link rel="stylesheet" href="bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css" />
+  <script src="bower_components/jquery/dist/jquery.min.js"></script>
+  <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+  <script src="bower_components/bootstrap-select/dist/js/bootstrap-select.min.js"></script>
+  <script src="bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+  <script src="bower_components/jquery-validation/dist/jquery.validate.min.js"></script>
+  <script src="scripts/forms.js"></script>
+  <script src="scripts/data.js"></script>
+  <script>
+  Date.prototype.dateAdd = function(size,value) {
+    newDate = this
+    value = parseInt(value);
+    var incr = 0;
+    switch (size) {
+        case 'day':
+            incr = value * 24;
+            newDate.dateAdd('hour',incr);
+            return newDate;
+        case 'hour':
+            incr = value * 60;
+            newDate.dateAdd('minute',incr);
+            return newDate;;
+        case 'week':
+            incr = value * 7;
+            newDate.dateAdd('day',incr);
+            return newDate;;
+        case 'minute':
+            incr = value * 60;
+            newDate.dateAdd('second',incr);
+            return newDate;;
+        case 'second':
+            incr = value * 1000;
+            newDate.dateAdd('millisecond',incr);
+            return newDate;;
+        case 'month':
+            value = value + newDate.getUTCMonth();
+            if (value/12>0) {
+                newDate.dateAdd('year',value/12);
+                value = value % 12;
+            }
+            newDate.setUTCMonth(value);
+            return newDate;;
+        case 'millisecond':
+            newDate.setTime(newDate.getTime() + value);
+            return newDate;;
+        case 'year':
+            newDate.setFullYear(newDate.getUTCFullYear()+value);
+            return newDate;;
+        default:
+            throw new Error('Invalid date increment passed');
+            break;
+    }
+}
+  // Style Guide: //
+  /*
+  * When creating an element, prefix it's var name with $
+  * Define it with only the minimum valid html tag required for that element - e.g. $("<a></a>")
+  * All text content in the element must be added using .html()
+  * All attributes are defined using .attr or .addClass
+  * All children must be appended to the parent with append or appendTo
+  */
+
+    $(document).ready(function(){
+      // Utility functions
+      function finish() {
+        for (var i = 0; i < steps.length; i ++) {
+          steps[i].fadeOut(fadeOutTime);
+        }
+      };
+
+      function refreshActive(dir) {
+
+        function /* local */ nextStep(){ //DRY DRY DRY!!!!
+            canPressButton = false; // ugh..
+            steps[currentStep].addClass("ignore");
+            steps[currentStep].fadeOut(fadeOutTime,function() {
+                steps[currentStep].removeClass("ignore");
+
+                canPressButton = true; // yuck..
+
+                currentStep += 1; // incrememt currentStep (yech)
+
+                function /* (local) */ fadeIn() {
+                  steps[currentStep].fadeIn(fadeInTime);
+                }
+
+                if (currentStep < noSteps) { // make sure we don't get a nil step
+                  fadeIn();
+                } else {
+                  currentStep = steps.length - 1;
+                  //complete the form
+                  fadeIn();
+                }
+            }); // increment step. once that is done, fade in the next step
+        }
+
+        if ( dir === undefined || dir === 1 ) {
+
+
+        var currentData = data[currentStep];
+        var failRegex = currentData.fail;
+
+        function /* local! */ createAlert(text) { // DRY
+          var $alert = $("<div></div>")
+            .addClass("alert")
+            .addClass("alert-danger")
+            .addClass("alert-dismissable")
+            .attr("role","alert")
+            .append(
+              $("<button></button>")
+                .addClass("close")
+                .attr("type","button")
+                .attr("data-dismiss","alert")
+                .attr("aria-label","Close")
+                .html($("<span></span>").attr("aria-hidden","true").html("&times;"))
+            )
+            .append(text);
+            return $alert
+        };
+        if (failRegex !== undefined) {
+          var inputValue = $("#input"+(currentStep+1)).val(); // more DRY
+
+          var $alert;
+          if (inputValue.match(failRegex)) {
+            $alert = createAlert(currentData.messages.error); // create alert with error message
+          } else if(currentData.required === true && (inputValue == "" || inputValue.match(/^\s+$/))) { // kill nasty empty input fields (if they are required)
+            console.log(currentData.messages.empty);
+            $alert = createAlert(currentData.messages.empty); // create alert with empty message
+          } else {
+            nextStep();
+          }
+          console.log($alert);
+          steps[currentStep].append("<br />").append($alert === undefined ? "" : $alert); // display alert or nothing if there was no error
+        } else {
+          nextStep();
+        }
+
+      } else {
+        canPressButton = false; // ugh..
+        steps[currentStep].addClass("ignore");
+        steps[currentStep].fadeOut(fadeOutTime,function() {
+          steps[currentStep].removeClass("ignore");
+
+          canPressButton = true; // yuck..
+
+          currentStep -= 1; // incrememt currentStep (yech)
+
+          function /* (local) */ fadeIn() {
+            steps[currentStep].fadeIn(fadeInTime);
+          }
+
+          if (currentStep < noSteps) { // make sure we don't get a nil step
+            fadeIn();
+          } else {
+            currentStep = steps.length - 1;
+            //complete the form
+            fadeIn();
+          }
+        }); // increment step. once that is done, fade in the next step
+      }
+      };
+      // end
+
+      // Constants
+      const fadeOutTime = 300;
+      const fadeInTime = 500;
+
+
+      // Vars
+
+      /* PARAMETERS FOR STEP():
+        * step (step index)
+        * noSteps (number of steps)
+        * buttonCallback (duh)
+        * labelContent (optional)
+        * (does not do anything anymore) parentForm
+        * content (optional)
+        * visible (optional, but reccomended)
+        * inputPlaceholder (optional)
+        * buttonText (also optional)
+      */
+
+      var $form = $("<form></form>").attr("id","mainForm"); // the form container
+
+      var steps = []; // the array that will hold all the steps
+      var canPressButton = true; // this is sooo ugly.. I wish I could remove it
+      var currentStep = 0; // I don't know if I need this either
+      var noSteps = data.length; // the number of steps
+
+        // Main code (time to *do* stuff)
+        function defaultCallback(e) {
+            e.preventDefault();
+            if (canPressButton) {
+              console.log("refreshed");
+              refreshActive();
+            } else {
+              console.log(canPressButton);
+            }
+        };
+        function goback(e) {
+          e.preventDefault();
+          if (canPressButton) {
+            refreshActive(-1);
+          }
+        }
+
+        // Note to self: js arrays start at 0!
+        for (var i = 0; i < noSteps; i ++) {
+          steps[i] = createStep({
+            step: i+1, // put this so that steps are shown as index in array + 1
+            noSteps: noSteps,
+            inputPlaceholder: data[i].customPlaceholder,
+            buttonText: "Next step &gt;&gt;",
+            buttonCallback: defaultCallback,
+            previousText: i > 0 ? "&lt;&lt;" : undefined,
+            previousCallback: goback,// no need for check here; previous is defined by previousText
+            content: data[i].contentText === undefined ? "<br />" : data[i].contentText + "<br />",
+            labelContent: data[i].label,
+            custom: data[i].custom
+          });
+          steps[i].addClass("ignore");
+        };
+
+        // final area with "submit" button
+        var $finalForm = $("<div></div>")
+          .addClass("form-group")
+          .addClass("col-md-6");
+        var $button = $("<input />")
+          .addClass("btn")
+          .addClass("btn-success")
+          .attr("type","submit")
+          .html("Finish")
+          .click(finish);
+        var $head = $("<h4></h4>").html("Thank you for using this form");
+        $finalForm
+          .append($("<br />"))
+          .append($head)
+          .append($("<br />"))
+          .append($button)
+          .fadeOut(0);
+
+  /* not neccessary anymore
+        $(".container").append($finalForm); // display everything
+        $finalForm.fadeIn(fadeInTime)
+  */
+        steps.push($finalForm);
+
+        for (i = 0; i < steps.length; i ++) {
+          var $el = steps[i];
+          $el.appendTo($form);
+        };
+        $form.appendTo(".container");
+        steps[0].fadeIn(500);
+
+        $form.submit(function(e) { // at last, we intercept the form and gloriously console.log the output!!!
+          e.preventDefault();
+          var formSubmission = $(this).serializeArray();
+          console.log(formSubmission); // for me
+          alert(JSON.stringify(formSubmission)); //for mom
+        });
+
+        // Rendering stuff
+        var currentDate;
+        currentDate = (new Date());
+        console.log(currentDate, new Date())
+
+        $("#year-dp").datepicker( {
+            format: " yyyy",
+            viewMode: "years",
+            minViewMode: "years",
+            endDate: currentDate,
+            startDate: currentDate.dateAdd("year",-2)
+        })
+        .on("changeDate",function(e){
+          var year = e.date.getFullYear();
+          $("#sy").html(year+" - "+(year+1));
+        });
+        $(".date").datepicker();
+        $('.selectpicker').selectpicker();
+    });
+  </script>
+</head>
+<body>
+  <div class="container"></div>
+</body>
+</html>

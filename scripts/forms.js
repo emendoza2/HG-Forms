@@ -45,8 +45,9 @@ function createStep(opt) {
   $step
     .append($head)
     .append($label)
+    .append("<br />")
     .append($input)
-    .append("<br />");
+    .append("<br />").append("<br />");
 
   if (opt.previousText!== undefined) {
     var $previous = $("<button></button>")

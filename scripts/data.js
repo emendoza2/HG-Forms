@@ -24,7 +24,7 @@ customPlaceholder:"Last name, First name"
 label:"Please input his or her birthdate",
 required:true,
 custom:"<div class='input-group date'>"+
-              "<input type='text' class='form-control' />"+
+              "<input type='text' class='form-control' name='input3' />"+
               "<span class='input-group-addon'>"+
                   "<span class='glyphicon glyphicon-calendar'></span>"+
               "</span>"+
@@ -33,7 +33,7 @@ custom:"<div class='input-group date'>"+
 {
 label:"What is your student's level?",
 required:true,
-custom:"<select class='selectpicker'>"+
+custom:"<select class='selectpicker' name='input4'>"+
   "<option>Pre-K</option>"+
   "<option>Kindergarden</option>"+
   "<option>Grade 1</option>"+
@@ -47,23 +47,22 @@ custom:"<select class='selectpicker'>"+
   "<option>Grade 9</option>"+
   "<option>Grade 10</option>"+
   "<option>Grade 11</option>"+
-  "<option>Grade 12</option>"
+  "<option>Grade 12</option>"+
+  "</select>"
 },
 {
 label:"What school year is your student in?",
 required:true,
-custom:"<div class='input-group date' id='year-dp'>"+
-
-          "</div>"
+custom:"<input type='text' class='input-group form-control date' id='year-dp' name='input5'></div><br /><span id='sy'></span>"
 },
 {
 label:"What quarter is your student in?",
 required:true,
 custom:
-'<label class="checkbox-inline"><input type="checkbox" value="">Q1</label>'+
-'<label class="checkbox-inline"><input type="checkbox" value="">Q2</label>'+
-'<label class="checkbox-inline"><input type="checkbox" value="">Q3</label>'+
-'<label class="checkbox-inline"><input type="checkbox" value="">Q4</label>'
+'<label class="radio-inline"><input type="radio" name="input6" value="Q1" />Q1</label>'+
+'<label class="radio-inline"><input type="radio" name="input6" value="Q2" />Q2</label>'+
+'<label class="radio-inline"><input type="radio" name="input6" value="Q3" />Q3</label>'+
+'<label class="radio-inline"><input type="radio" name="input6" value="Q4" />Q4</label>'
 },
 {
 label:"English",

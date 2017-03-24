@@ -1,5 +1,5 @@
 function fallback(text,fb) {
-  return text === undefined ? (fb === undefined ? "" : fb) : text
+  return text === undefined ? (fb === undefined ? "" : fb) : text;
 } // if a string is undefined, return fb or "", otherwise, return the string
 
 function createStep(opt) {
@@ -16,22 +16,51 @@ function createStep(opt) {
   var $head = $("<h1></h1>")
     .html("Step " + opt.step + " of " + opt.noSteps); // create the header
 
-  var inputName = "input" + opt.step; // for DRY code
-  var $label = $("<label></label>")
-    .attr("for", inputName)
-    .html(fallback(opt.labelContent));
+  var inputs = [];
+  var labels = [];
+  var $label;
   var $input;
+  //var $input;
   if (opt.custom !== undefined) {
-    $input = opt.custom;
+    $label = $("<label></label>")
+      .html(fallback(opt.inputs[0].labelContent));
+     inputs.push(opt.custom);
+     labels.push($label);
   } else {
-    $input = $("<input />")
-      .attr("name", inputName).attr("id", inputName)
-      .attr("placeholder",fallback(opt.inputPlaceholder))
-      .attr("type",fallback(opt.customInputType,"text"))
-      .addClass("form-control");
-  }
-  if (opt.inputRequired === undefined ? false : opt.inputRequired) {
-    $input.attr("required","required");
+    for (i = 0; i < opt.inputs.length; i ++) {
+
+      var currentData = opt.inputs[i]; // more DRY
+      var inputName = currentData.inputName === undefined ? "input" + opt.step + "-" + i : currentData.inputName; // for DRY code
+
+      if (typeof(currentData.labelContent) === "string") {
+        $label = $("<label></label>")
+          .attr("for", inputName)
+          .html(fallback(currentData.labelContent));
+      }
+
+      if (currentData.custom !== '') {
+        console.log("currentData is not custom");
+        $input = $("<input />")
+          .attr("name", inputName).attr("id", inputName)
+          .attr("placeholder",fallback(currentData.inputPlaceholder))
+          .attr("type",fallback(currentData.customInputType,"text"))
+          .addClass("form-control");
+
+        if (currentData.inputRequired === undefined ? false : currentData.inputRequired) {
+          $input.attr("required","required");
+        }
+
+      } else {
+        console.log("currentData is custom - ",currentData);
+        $input = currentData.custom;
+      }
+      labels[inputs.length] = $label;
+      console.log(inputs.length, $label.html());
+      inputs.push($input);
+
+
+    }
+
   }
 
   var $submit = $("<button></button>")
@@ -40,14 +69,15 @@ function createStep(opt) {
       .html(fallback(opt.buttonText))
       .click(opt.buttonCallback);
 
+  $step.append($head).append(fallback(opt.content));
 
+  for (var i = 0; i < inputs.length; i++) {
+    console.log(labels[i]);
+    $step.append(labels[i]).append("<br />");
+    $step.append(inputs[i]).append("<br />");
+  }
 
-  $step
-    .append($head)
-    .append($label)
-    .append("<br />")
-    .append($input)
-    .append("<br />").append("<br />");
+  $step.append("<br />");
 
   if (opt.previousText!== undefined) {
     var $previous = $("<button></button>")
@@ -55,15 +85,15 @@ function createStep(opt) {
         .addClass("btn-default")
         .html(fallback(opt.previousText))
         .click(opt.previousCallback);
-        $step.append($previous)
+        $step.append($previous);
   }
-      $step
-        .append($submit)
-        .append("<br / ><br />")
-        .append(fallback(opt.content)); // stick everything in
+
+  $step
+    .append($submit)
+    .append("<br / ><br />"); // stick everything in
 
   //var $out = $template.render(opt)
   //$step.html($out)
   // $step.appendTo(opt.parentForm); - this should be done outside of this. Otherwise, what is the point of return?
-  return $step
+  return $step;
 }

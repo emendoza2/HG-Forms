@@ -47,7 +47,7 @@
   <!-- The life of the page -->
   <script>
   Date.prototype.dateAdd = function(size,value) {
-    var newDate = new Date(this)
+    var newDate = new Date(this);
     value = parseInt(value);
     var incr = 0;
     switch (size) {
@@ -58,19 +58,19 @@
         case 'hour':
             incr = value * 60;
             newDate.dateAdd('minute',incr);
-            return newDate;;
+            return newDate;
         case 'week':
             incr = value * 7;
             newDate.dateAdd('day',incr);
-            return newDate;;
+            return newDate;
         case 'minute':
             incr = value * 60;
             newDate.dateAdd('second',incr);
-            return newDate;;
+            return newDate;
         case 'second':
             incr = value * 1000;
             newDate.dateAdd('millisecond',incr);
-            return newDate;;
+            return newDate;
         case 'month':
             value = value + newDate.getUTCMonth();
             if (value/12>0) {
@@ -78,18 +78,18 @@
                 value = value % 12;
             }
             newDate.setUTCMonth(value);
-            return newDate;;
+            return newDate;
         case 'millisecond':
             newDate.setTime(newDate.getTime() + value);
-            return newDate;;
+            return newDate;
         case 'year':
             newDate.setFullYear(newDate.getUTCFullYear()+value);
-            return newDate;;
+            return newDate;
         default:
             throw new Error('Invalid date increment passed');
-            break;
+            //break;
     }
-}
+}; // for later
   // Style Guide: //
   /*
   * When creating an element, prefix it's var name with $
@@ -102,8 +102,8 @@
   // Define everything here
 
   // Constants
-  const fadeOutTime = 300;
-  const fadeInTime = 500;
+  var fadeOutTime = 300;
+  var fadeInTime = 500;
 
 
   // Vars
@@ -120,7 +120,7 @@
     * buttonText (also optional)
   */
 
-  var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $head;
+  var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $head; // define all variables so they can be accessed through the console (will be changed later for security)
 
     $(document).ready(function(){
       // Utility functions
@@ -128,9 +128,27 @@
         for (var i = 0; i < steps.length; i ++) {
           steps[i].fadeOut(fadeOutTime);
         }
-      };
+      }
 
       function refreshActive(dir) {
+
+        function /* local! */ createAlert(text) { // DRY
+          var $alert = $("<div></div>")
+            .addClass("alert")
+            .addClass("alert-danger")
+            .addClass("alert-dismissable")
+            .attr("role","alert")
+            .append(
+              $("<button></button>")
+                .addClass("close")
+                .attr("type","button")
+                .attr("data-dismiss","alert")
+                .attr("aria-label","Close")
+                .html($("<span></span>").attr("aria-hidden","true").html("&times;"))
+            )
+            .append(text);
+            return $alert;
+        }
 
         function /* local */ nextStep(){ //DRY DRY DRY!!!!
             canPressButton = false; // ugh..
@@ -158,44 +176,28 @@
 
         if ( dir === undefined || dir === 1 ) {
 
-          var currentData = data[currentStep];
+          var allOK = true;
+          for (var i = 0; i < data[currentStep].inputs.length; i++) {
+          var currentData = data[currentStep].inputs[i];
           var failRegex = currentData.fail;
-
-          function /* local! */ createAlert(text) { // DRY
-            var $alert = $("<div></div>")
-              .addClass("alert")
-              .addClass("alert-danger")
-              .addClass("alert-dismissable")
-              .attr("role","alert")
-              .append(
-                $("<button></button>")
-                  .addClass("close")
-                  .attr("type","button")
-                  .attr("data-dismiss","alert")
-                  .attr("aria-label","Close")
-                  .html($("<span></span>").attr("aria-hidden","true").html("&times;"))
-              )
-              .append(text);
-              return $alert
-          };
           if (failRegex !== undefined) {
-            var inputValue = $("#input"+(currentStep+1)).val(); // more DRY
 
+            var inputValue = $("#input"+(currentStep+1)+"-"+i).val(); // more DRY
             var $alert;
             if (inputValue.match(failRegex)) {
               $alert = createAlert(currentData.messages.error); // create alert with error message
-            } else if(currentData.required === true && (inputValue == "" || inputValue.match(/^\s+$/))) { // kill nasty empty input fields (if they are required)
+              allOK = false;
+            } else if(currentData.required === true && (inputValue === "" || inputValue.match(/^\s+$/))) { // kill nasty empty input fields (if they are required)
               console.log(currentData.messages.empty);
               $alert = createAlert(currentData.messages.empty); // create alert with empty message
-            } else {
-              nextStep();
+              allOK = false;
             }
-            console.log($alert);
             steps[currentStep].append("<br />").append($alert === undefined ? "" : $alert); // display alert or nothing if there was no error
-          } else {
-            nextStep();
           }
-
+        }
+        if (allOK) { // need this, otherwise multiple steps will appear out of nowhere!
+          nextStep();
+        }
         } else {
           canPressButton = false; // ugh..
           steps[currentStep].addClass("ignore");
@@ -219,7 +221,7 @@
             }
           }); // increment step. once that is done, fade in the next step
         }
-      };
+      }
       // end
 
       $form = $("<form></form>").attr("id","mainForm"); // the form container
@@ -256,7 +258,7 @@
           } else {
             console.log(canPressButton);
           }
-      };
+      }
       function goback(e) {
         e.preventDefault();
         if (canPressButton) {
@@ -264,29 +266,55 @@
         }
       }
 
+
+      function createInput(datas, inputs) {
+        return {
+          inputPlaceholder: datas.customPlaceholder,
+          customInputType: datas.customInputType,
+          inputRequired: datas.inputRequired,
+          labelContent: datas.label,
+          fail: datas.fail,
+          messages: datas.messages,
+          inline: datas.inline
+        };
+      }
+
       // Note to self: js arrays start at 0!
       for (var i = 0; i < noSteps; i ++) {
+        var inputs = [];
+        var currentData;
+        if (data[i].inputs !== undefined) { // create multiple
+          for (var j = 0; j < data[i].inputs.length; j++) {
+            currentData = data[i].inputs[j];
+            console.log(currentData.customPlaceholder);
+            inputs.push(createInput(currentData));
+          }
+        } else {
+          currentData = data[i];
+          inputs.push(createInput(currentData));
+          data[i].inputs = [currentData];
+        }
         steps[i] = createStep({
           step: i+1, // put this so that steps are shown as index in array + 1
           noSteps: noSteps,
-          inputPlaceholder: data[i].customPlaceholder,
-          buttonText: "Next step &gt;&gt;",
+          buttonText: "&gt;&gt;",
           buttonCallback: defaultCallback,
           previousText: i > 0 ? "&lt;&lt;" : undefined,
           previousCallback: goback,// no need for check here; previous is defined by previousText
           content: data[i].contentText === undefined ? "<br />" : data[i].contentText + "<br />",
-          labelContent: data[i].label,
-          custom: data[i].custom
+          //labelContent: data[i].label,
+          custom: data[i].custom,
+          inputs: inputs
         });
         steps[i].addClass("ignore");
-      };
+      }
 
       steps.push($finalForm);
 
       for (i = 0; i < steps.length; i ++) {
         var $el = steps[i];
         $el.appendTo($form);
-      };
+      }
       $form.appendTo(".container");
       steps[0].fadeIn(500);
 
@@ -298,8 +326,7 @@
       });
 
       /* Rendering stuff */
-      var currentDate;
-      currentDate = (new Date());
+      var currentDate = (new Date());
 
       $("#year-dp").datepicker( {
           format: " yyyy",
@@ -312,7 +339,12 @@
         var year = e.date.getFullYear();
         $("#sy").html(year+" - "+(year+1));
       });
-      $(".date").datepicker();
+      $("#year-dp").val(" " + currentDate.getFullYear());
+      $("#year-dp").datepicker('update');
+      $(".date").datepicker( {
+        endDate: currentDate,
+        assumeNearbyYear: true
+      });
       $('.selectpicker').selectpicker();
 
     });

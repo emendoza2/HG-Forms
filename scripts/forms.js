@@ -5,7 +5,6 @@ function fallback(text,fb) {
 function createStep(opt) {
   var $step = $("<div></div>")
     .attr("id","step"+opt.step)
-    .addClass("form-group")
     .addClass("col-md-6");
 
   //var $template = $.templates("#step");
@@ -27,10 +26,11 @@ function createStep(opt) {
      inputs.push(opt.custom);
      labels.push($label);
   } else {
+
     for (i = 0; i < opt.inputs.length; i ++) {
 
       var currentData = opt.inputs[i]; // more DRY
-      var inputName = currentData.inputName === undefined ? "input" + opt.step + "-" + i : currentData.inputName; // for DRY code
+      var inputName = currentData.inputName === undefined ? "input" + opt.step + "g" + i : currentData.inputName; // for DRY code
 
       if (typeof(currentData.labelContent) === "string") {
         $label = $("<label></label>")
@@ -39,16 +39,20 @@ function createStep(opt) {
       }
 
       if (currentData.custom !== '') {
+        var $formGroup = $("<div></div>").addClass("form-group");
         console.log("currentData is not custom");
-        $input = $("<input />")
+        var $insideInput = $("<input />")
           .attr("name", inputName).attr("id", inputName)
           .attr("placeholder",fallback(currentData.inputPlaceholder))
           .attr("type",fallback(currentData.customInputType,"text"))
           .addClass("form-control");
 
         if (currentData.inputRequired === undefined ? false : currentData.inputRequired) {
-          $input.attr("required","required");
+          $insideInput.attr("required","required");
         }
+
+        $formGroup.append($insideInput);
+        $input = $formGroup;
 
       } else {
         console.log("currentData is custom - ",currentData);
@@ -171,143 +175,143 @@ var fadeInTime = 500;
 * inputPlaceholder (optional)
 * buttonText (also optional)
 */
+var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $head; // define all variables so they can be accessed through the console (will be changed later for security)
 
 
 // Utility functions
-  function finish() {
-    for (var i = 0; i < steps.length; i ++) {
-      steps[i].fadeOut(fadeOutTime);
-    }
-  }
 
-  function refreshActive(dir) {
 
-    function /* local! */ createAlert(text) { // DRY
-      var $alert = $("<div></div>")
-        .addClass("alert")
-        .addClass("alert-danger")
-        .addClass("alert-dismissable")
-        .attr("role","alert")
-        .append(
-          $("<button></button>")
-            .addClass("close")
-            .attr("type","button")
-            .attr("data-dismiss","alert")
-            .attr("aria-label","Close")
-            .html($("<span></span>").attr("aria-hidden","true").html("&times;"))
-        )
-        .append(text);
-        return $alert;
-    }
+  function startForm(data,container) {
 
-    function /* local */ nextStep(){ //DRY DRY DRY!!!!
+    function refreshActive(dir) {
+
+      function /* local! */ createAlert(text) { // DRY
+        var $alert = $("<div></div>")
+          .addClass("alert")
+          .addClass("alert-danger")
+          .addClass("alert-dismissable")
+          .attr("role","alert")
+          .append(
+            $("<button></button>")
+              .addClass("close")
+              .attr("type","button")
+              .attr("data-dismiss","alert")
+              .attr("aria-label","Close")
+              .html($("<span></span>").attr("aria-hidden","true").html("&times;"))
+          )
+          .append(text);
+          return $alert;
+      }
+
+      function /* local */ nextStep(){ //DRY DRY DRY!!!!
+          canPressButton = false; // ugh..
+          steps[currentStep].addClass("ignore");
+          steps[currentStep].fadeOut(fadeOutTime,function() {
+              steps[currentStep].removeClass("ignore");
+
+              canPressButton = true; // yuck..
+
+              currentStep += 1; // incrememt currentStep (yech)
+
+              function /* (local) */ fadeIn() {
+                steps[currentStep].fadeIn(fadeInTime);
+              }
+
+              if (currentStep < noSteps) { // make sure we don't get a nil step
+                fadeIn();
+              } else {
+                currentStep = steps.length - 1;
+                //complete the form
+                fadeIn();
+              }
+          }); // increment step. once that is done, fade in the next step
+      }
+
+      if ( dir === undefined || dir === 1 ) {
+
+        var allOK = true;
+        for (var i = 0; i < data.inputs[currentStep].inputs.length; i++) {
+        var currentData = data.inputs[currentStep].inputs[i];
+        var failRegex = currentData.fail;
+        var inputValue = $("[name='input"+(currentStep+1)+"g"+i+"']").val(); // more DRY
+        if (failRegex !== undefined) {
+          console.log(currentData.required);
+          var $alert;
+          if (inputValue.match(failRegex) && inputValue !== "") {
+            $alert = createAlert(currentData.messages.error); // create alert with error message
+            allOK = false;
+          } else if(currentData.required === true && (inputValue === "" || inputValue.match(/^\s+$/))) { // kill nasty empty input fields (if they are required)
+            console.log(currentData.messages.empty);
+            $alert = createAlert(currentData.messages.empty); // create alert with empty message
+            allOK = false;
+          }
+          steps[currentStep].append("<br />").append($alert === undefined ? "" : $alert); // display alert or nothing if there was no error
+        }
+      }
+      if (allOK) { // need this, otherwise multiple steps will appear out of nowhere!
+        nextStep();
+      }
+      } else {
         canPressButton = false; // ugh..
         steps[currentStep].addClass("ignore");
         steps[currentStep].fadeOut(fadeOutTime,function() {
-            steps[currentStep].removeClass("ignore");
+          steps[currentStep].removeClass("ignore");
 
-            canPressButton = true; // yuck..
+          canPressButton = true; // yuck..
 
-            currentStep += 1; // incrememt currentStep (yech)
+          currentStep -= 1; // incrememt currentStep (yech)
 
-            function /* (local) */ fadeIn() {
-              steps[currentStep].fadeIn(fadeInTime);
-            }
+          function /* (local) */ fadeIn() {
+            steps[currentStep].fadeIn(fadeInTime);
+          }
 
-            if (currentStep < noSteps) { // make sure we don't get a nil step
-              fadeIn();
-            } else {
-              currentStep = steps.length - 1;
-              //complete the form
-              fadeIn();
-            }
+          if (currentStep < noSteps) { // make sure we don't get a nil step
+            fadeIn();
+          } else {
+            currentStep = steps.length - 1;
+            //complete the form
+            fadeIn();
+          }
         }); // increment step. once that is done, fade in the next step
-    }
-
-    if ( dir === undefined || dir === 1 ) {
-
-      var allOK = true;
-      for (var i = 0; i < data[currentStep].inputs.length; i++) {
-      var currentData = data[currentStep].inputs[i];
-      var failRegex = currentData.fail;
-      if (failRegex !== undefined) {
-
-        var inputValue = $("#input"+(currentStep+1)+"-"+i).val(); // more DRY
-        var $alert;
-        if (inputValue.match(failRegex)) {
-          $alert = createAlert(currentData.messages.error); // create alert with error message
-          allOK = false;
-        } else if(currentData.required === true && (inputValue === "" || inputValue.match(/^\s+$/))) { // kill nasty empty input fields (if they are required)
-          console.log(currentData.messages.empty);
-          $alert = createAlert(currentData.messages.empty); // create alert with empty message
-          allOK = false;
-        }
-        steps[currentStep].append("<br />").append($alert === undefined ? "" : $alert); // display alert or nothing if there was no error
       }
     }
-    if (allOK) { // need this, otherwise multiple steps will appear out of nowhere!
-      nextStep();
+    // end
+
+    function finish() {
+      for (var i = 0; i < steps.length; i ++) {
+        steps[i].fadeOut(fadeOutTime);
+      }
     }
-    } else {
-      canPressButton = false; // ugh..
-      steps[currentStep].addClass("ignore");
-      steps[currentStep].fadeOut(fadeOutTime,function() {
-        steps[currentStep].removeClass("ignore");
 
-        canPressButton = true; // yuck..
-
-        currentStep -= 1; // incrememt currentStep (yech)
-
-        function /* (local) */ fadeIn() {
-          steps[currentStep].fadeIn(fadeInTime);
-        }
-
-        if (currentStep < noSteps) { // make sure we don't get a nil step
-          fadeIn();
+    // Main code (time to *do* stuff)
+    function defaultCallback(e) {
+        e.preventDefault();
+        if (canPressButton) {
+          console.log("refreshed");
+          refreshActive();
         } else {
-          currentStep = steps.length - 1;
-          //complete the form
-          fadeIn();
+          console.log(canPressButton);
         }
-      }); // increment step. once that is done, fade in the next step
     }
-  }
-  // end
-
-
-
-  // Main code (time to *do* stuff)
-  function defaultCallback(e) {
+    function goback(e) {
       e.preventDefault();
       if (canPressButton) {
-        console.log("refreshed");
-        refreshActive();
-      } else {
-        console.log(canPressButton);
+        refreshActive(-1);
       }
-  }
-  function goback(e) {
-    e.preventDefault();
-    if (canPressButton) {
-      refreshActive(-1);
     }
-  }
 
 
-  function createInput(datas, inputs) {
-    return {
-      inputPlaceholder: datas.customPlaceholder,
-      customInputType: datas.customInputType,
-      inputRequired: datas.inputRequired,
-      labelContent: datas.label,
-      fail: datas.fail,
-      messages: datas.messages,
-      inline: datas.inline
-    };
-  }
-
-  function startForm(data) {
-    var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $head; // define all variables so they can be accessed through the console (will be changed later for security)
+    function createInput(datas, inputs) {
+      return {
+        inputPlaceholder: datas.customPlaceholder,
+        customInputType: datas.customInputType,
+        inputRequired: datas.inputRequired,
+        labelContent: datas.label,
+        fail: datas.fail,
+        messages: datas.messages,
+        inline: datas.inline
+      };
+    }
 
     $form = $("<form></form>").attr("id","mainForm"); // the form container
 
@@ -339,11 +343,9 @@ var fadeInTime = 500;
       var inputs = [];
       var currentData = data.inputs[i];
       if (typeof currentData.inputs == 'object') { // create multiple
-        console.log(currentData.inputs);
         for (var j = 0; j < currentData.inputs.length; j++) {
-          currentData = currentData.inputs[j];
-          console.log(currentData.customPlaceholder);
-          inputs.push(createInput(currentData));
+          currentInput = currentData.inputs[j];
+          inputs.push(createInput(currentInput));
         }
       } else {
         inputs.push(createInput(currentData));
@@ -370,7 +372,7 @@ var fadeInTime = 500;
       var $el = steps[i];
       $el.appendTo($form);
     }
-    $form.appendTo(".container");
+    $form.appendTo(container);
     steps[0].fadeIn(500);
 
     $form.submit(function(e) { // at last, we intercept the form and gloriously console.log the output!!!

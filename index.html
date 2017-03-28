@@ -61,7 +61,7 @@
   <script>
     $(document).ready(function(){
       $("#ph-a").click(function(){
-        startForm(philippine);
+        startForm(philippine,".container:not(#beginForm)");
         $("#beginForm").fadeOut(fadeOutTime);
       });
     });
@@ -69,10 +69,10 @@
 </head>
 <body>
   <div class='container' id='beginForm'>
-    <h1>Homeschool Global Reporting Forms</h1>
+    <h1>Homeschool Global Student Progress Report</h1>
     <br />
     <div id='acredit'>
-      <p><strong>Choose Your Acreditation</strong></p>
+      <p><strong>Choose Your Accreditation</strong></p>
       <button type='button' class='btn btn-success btn-lg huge' id='ph-a'>Philippine</button>&nbsp;&nbsp;&nbsp;&nbsp;<button type='button' class='btn btn-primary btn-lg huge' id='us-a'>U.S.</button>
     </div>
   </div>

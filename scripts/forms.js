@@ -5,7 +5,7 @@ function fallback(text,fb) {
 function createStep(opt) {
   var $step = $("<div></div>")
     .attr("id","step"+opt.step)
-    .addClass("col-md-6");
+    .addClass("col-md-12");
 
   //var $template = $.templates("#step");
   if (typeof(opt.visible) === "undefined" || !opt.visible) {
@@ -36,11 +36,13 @@ function createStep(opt) {
         $label = $("<label></label>")
           .attr("for", inputName)
           .html(fallback(currentData.labelContent));
+      } else {
+        $label = $("<label></label>");
       }
-
-      if (currentData.custom !== '') {
+console.log(currentData.custom, currentData);
+      if (currentData.custom === undefined || currentData.custom === '') {
         var $formGroup = $("<div></div>").addClass("form-group");
-        console.log("currentData is not custom");
+        console.log("currentData is not custom",currentData.custom);
         var $insideInput = $("<input />")
           .attr("name", inputName).attr("id", inputName)
           .attr("placeholder",fallback(currentData.inputPlaceholder))
@@ -59,7 +61,6 @@ function createStep(opt) {
         $input = currentData.custom;
       }
       labels[inputs.length] = $label;
-      console.log(inputs.length, $label.html());
       inputs.push($input);
 
 
@@ -73,7 +74,7 @@ function createStep(opt) {
       .html(fallback(opt.buttonText))
       .click(opt.buttonCallback);
 
-  $step.append($head).append(fallback(opt.content));
+  $step.append($head).append(opt.content === undefined ? '' : opt.content);
 
   for (var i = 0; i < inputs.length; i++) {
     console.log(labels[i]);
@@ -203,28 +204,53 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
           return $alert;
       }
 
-      function /* local */ nextStep(){ //DRY DRY DRY!!!!
+      function /* local */ nextStep(dir){ //DRY DRY DRY!!!!
           canPressButton = false; // ugh..
-          steps[currentStep].addClass("ignore");
-          steps[currentStep].fadeOut(fadeOutTime,function() {
-              steps[currentStep].removeClass("ignore");
-
-              canPressButton = true; // yuck..
-
-              currentStep += 1; // incrememt currentStep (yech)
-
-              function /* (local) */ fadeIn() {
-                steps[currentStep].fadeIn(fadeInTime);
+          allOK = true;
+          steps[currentStep].find("input.verify[type='text']").each(function(index) {
+            var current = $(this);
+            var fail = new RegExp(current.attr('data-fail'));
+            var value = current.val();
+            var emptyError = current.attr('data-empty-error');
+            var failError = current.attr('data-fail-error');
+            if (emptyError !== '') {
+              if (value === '') {
+                $("#step"+currentStep).append(createAlert(emptyError));
+                allOK = false;
               }
-
-              if (currentStep < noSteps) { // make sure we don't get a nil step
-                fadeIn();
-              } else {
-                currentStep = steps.length - 1;
-                //complete the form
-                fadeIn();
+              console.log(allOK);
+            }
+            if (failError !== '' && allOK) {
+              if (value.match(fail)) {
+                $("#step"+currentStep).append(createAlert(failError));
+                allOK = false;
               }
-          }); // increment step. once that is done, fade in the next step
+              console.log(allOK);
+            }
+
+          });
+          if (allOK) {
+            steps[currentStep].fadeOut(fadeOutTime,function() {
+
+                canPressButton = true; // yuck..
+
+                currentStep += dir; // incrememt currentStep (yech)
+
+                function /* (local) */ fadeIn() {
+                  steps[currentStep].fadeIn(fadeInTime);
+                }
+
+                if (currentStep < noSteps) { // make sure we don't get a nil step
+                  fadeIn();
+                } else {
+                  currentStep = steps.length - 1;
+                  //complete the form
+                  fadeIn();
+                }
+            }); // increment step. once that is done, fade in the next step
+          } else {
+            canPressButton = true;
+          }
       }
 
       if ( dir === undefined || dir === 1 ) {
@@ -249,19 +275,18 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
         }
       }
       if (allOK) { // need this, otherwise multiple steps will appear out of nowhere!
-        nextStep();
+        nextStep(1);
       }
       } else {
-        canPressButton = false; // ugh..
-        steps[currentStep].addClass("ignore");
+        nextStep(-1);
+        /*canPressButton = false; // ugh..
         steps[currentStep].fadeOut(fadeOutTime,function() {
-          steps[currentStep].removeClass("ignore");
 
           canPressButton = true; // yuck..
 
           currentStep -= 1; // incrememt currentStep (yech)
 
-          function /* (local) */ fadeIn() {
+          function /* (local) / fadeIn() {
             steps[currentStep].fadeIn(fadeInTime);
           }
 
@@ -272,7 +297,7 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
             //complete the form
             fadeIn();
           }
-        }); // increment step. once that is done, fade in the next step
+        }); // increment step. once that is done, fade in the next step */
       }
     }
     // end
@@ -309,7 +334,9 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
         labelContent: datas.label,
         fail: datas.fail,
         messages: datas.messages,
-        inline: datas.inline
+        inline: datas.inline,
+        custom: datas.custom,
+        content: datas.content
       };
     }
 
@@ -322,7 +349,7 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
     // final area with "submit" button
     $finalForm = $("<div></div>")
       .addClass("form-group")
-      .addClass("col-md-6");
+      .addClass("col-md-12");
     $button = $("<input />")
       .addClass("btn")
       .addClass("btn-success")
@@ -345,7 +372,9 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
       if (typeof currentData.inputs == 'object') { // create multiple
         for (var j = 0; j < currentData.inputs.length; j++) {
           currentInput = currentData.inputs[j];
-          inputs.push(createInput(currentInput));
+          var createdInput = createInput(currentInput);
+          inputs.push(createdInput);
+          console.log(createdInput.custom);
         }
       } else {
         inputs.push(createInput(currentData));
@@ -363,7 +392,6 @@ var $form, steps, canPressButton, currentStep, noSteps, $finalForm, $button, $he
         custom: currentData.custom,
         inputs: inputs
       });
-      steps[i].addClass("ignore");
     }
 
     steps.push($finalForm);
